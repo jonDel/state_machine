@@ -1,0 +1,13 @@
+language: python
+
+python:
+  - "2.7"
+install:
+  - pip install -e .
+  - pip install coveralls # For coveralls.io specifically
+  - pip install -r tests_requirements.txt
+script:
+  # Main tests, w/ coverage!
+  - inv test --coverage
+after_success:
+- coveralls
