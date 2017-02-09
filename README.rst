@@ -17,9 +17,6 @@
     :target: https://landscape.io/github/jonDel/state_machine/master
     :alt: Code Health
 
-.. image:: https://www.versioneye.com/user/projects/582ddf73c8dd3300448f9e81/badge.svg?style=flat
-    :target: https://www.versioneye.com/user/projects/582ddf73c8dd3300448f9e81
-
 
 state_machine
 =============
