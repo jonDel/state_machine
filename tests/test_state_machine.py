@@ -65,6 +65,7 @@ class StateMachineTest(unittest.TestCase):
         self.assertTrue(self.sm.check_if_thread_alive(self.sm._activity_id))
 
     def test02_read_file(self):
+        sleep(0.15)
         self.assertEqual(self.sm._current_state, 'read_file')
 
     def test03_apply_regex(self):
