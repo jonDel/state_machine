@@ -6,11 +6,11 @@ def test(ctx, coverage=False, flags=""):
         flags += " --verbose"
     runner = "python"
     if coverage:
-        runner = "coverage run --source=state_machine"
+        runner = "coverage run --source=state_machine_db"
     ctx.run("{0} tests/test_state_machine.py {1}".format(runner, flags), pty=True)
 
 @task
 def coverage(ctx):
-    ctx.run("coverage run --source=state_machine tests/state_machine.py --verbose")
+    ctx.run("coverage run --source=state_machine_db tests/test_state_machine.py --verbose")
 
 ns = Collection(test, coverage)
