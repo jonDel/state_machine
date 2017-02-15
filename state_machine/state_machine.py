@@ -1,4 +1,3 @@
-# coding: utf-8
 '''
     This module implements a state machine that waits for flags to
     jump from state to state until it is finished
@@ -11,6 +10,7 @@ import threading
 from time import sleep
 import logging
 
+
 class StateMachine(threading.Thread):
     '''
 
@@ -22,20 +22,23 @@ class StateMachine(threading.Thread):
             machine instance
 
         '''
-
-
     def __init__(self, sm_database_path, activity_id):
-        self.logger = logging.getLogger('state_machine.StateMachine')
+        self.logger = logging.getLogger('state_machine'+'.'+str(activity_id))
         self._activity_id = activity_id
         self._sm_database_path = sm_database_path
-        self.is_finished = False
-        self.present_state = None
-        self.__execution_state = None
+        self._is_finished = False
+        self._states_to_exec_list = []
+        self._all_states_list = []
+        self._recovering = False
+        self._previous_state = None
+        self._current_state = None
+        self._next_state = None
+        self.actual__current_state = None
         self._external_id = None
         # MUST implement in the child class
         self._states_methods_dict = {}
-        self.__states_to_exec_name_list = []
-        self.__sm_fields = self.get_present_sm_fields()
+        self._states_to_exec_name_list = []
+        self._sm_fields = {}
         # Thread class parameters and initialization:
         threading.Thread.__init__(self)
         # If daemon = True, the thread will die with its parent
@@ -47,11 +50,11 @@ class StateMachine(threading.Thread):
         # flag that sinalizes an update in the state machine
         self.update_flag = False
 
-    def __restore_state_from_db(self):
+    def _restore_state_from_db(self):
         '''
 
         Inspects the data base and tries to restore the thread related to
-        the present activity (activity_id)
+        the current activity (activity_id)
 
         '''
         con = sql.connect(self._sm_database_path)
@@ -63,99 +66,104 @@ class StateMachine(threading.Thread):
             cur.execute(execute)
         rows = cur.fetchall()
         # Fetching fields from data base
-        if rows:
-            self.is_finished = ast.literal_eval(rows[0]["is_finished"].encode('utf-8'))
-            if not self.is_finished:
-                self.present_state = rows[0]["present_state"].encode('utf-8')
-                self._external_id = rows[0]["external_id"]
-                states_list = self._states_methods_dict.keys()
-                states_to_exec_list = states_list[(states_list.index(self.present_state) + 1):]
-                for state in states_to_exec_list:
-                    if not state in self.__states_to_exec_name_list:
-                        self.__states_to_exec_name_list.append(state)
+        self._is_finished = ast.literal_eval(rows[0]["_is_finished"].encode('utf-8'))
+        if not self._is_finished:
+            self._recovering = True
+            self._previous_state = rows[0]["_current_state"].encode('utf-8')
+            self._current_state = rows[0]["_next_state"].encode('utf-8')
+            self._external_id = rows[0]["external_id"]
+            # Getting next state index
+            ns_idx = self._all_states_list.index(self._current_state)+1
+            # Checking if there is a next state, else set to none
+            if not ns_idx > len(self._all_states_list) -1:
+                self._next_state = self._all_states_list[ns_idx]
+            else:
+                self._next_state = None
+            states_list = self._states_methods_dict.keys()
+            curr_st_idx = states_list.index(self._current_state)
+            # if actual__current_state exists, it means that there was an
+            # external update in the current state machine state, i.e,
+            # we must forward the state machine from the _current_state recovered from the
+            # database to the actual__current_state
+            if self.actual__current_state in states_list:
+                act_curr_st_idx = states_list.index(self.actual__current_state)
+                self._states_to_exec_list = states_list[curr_st_idx:act_curr_st_idx+1]
+            else:
+                self._states_to_exec_list = [self._current_state]
         else:
-            self.__update_states_to_execute()
+            logging.warning('The activity with id ' + self._activity_id\
+                +' has been already finished.')
 
-    def __update_states_to_execute(self):
+    def _update_states(self):
         '''
 
-        Updates the list of states' actions that must be executed
+        Update each state: _current_state becomes _previous_state,
+        _next_state becomes _current_state and _next_state is replaced
+        by the first state after _current_state in _states_to_exec_list.
+        The flag _is_finished is updated too if the last executed state is the
+        last in _states_to_exec_list
 
         '''
-        states_list = self._states_methods_dict.keys()
-        states_to_exec_list = states_list[
-            (states_list.index(self.present_state) + 1):] if self.present_state else states_list
-        for state in states_to_exec_list:
-            if not state in self.__states_to_exec_name_list:
-                self.__states_to_exec_name_list.append(state)
+        # If current state is the last state
+        # update the states accordingly
+        if self._current_state == self._all_states_list[-1]:
+            self._is_finished = True
+        else:
+            self._previous_state = self._current_state
+            self._current_state = self._next_state
+            ns_idx = self._all_states_list.index(self._current_state)+1
+            # If next state is the last, state
+            # update the states accordingly
+            if not ns_idx >= len(self._all_states_list):
+                self._next_state = self._all_states_list[ns_idx]
+            else:
+                self._next_state = None
 
-    def __exec_states_list(self, states_to_exec_name_list=None):
+    def _exec_state(self, state_to_exec_name=None):
         '''
 
         Executes all methods described in self._states_methods_dict that
         corresponds to states listed in states_to_exec_name_list
 
         Arguments:
-            states_to_exec_name_list (:obj:`list`, *default* = self.__states_to_exec_name_list):
-                list containing the states that must have its methods executed
-            activity_id (:obj:`str`): identifier for the current state
-                machine instance
+            state_to_exec_name (:obj:`string`, *default* = None):
+                state that must have its methods executed. If not given, self._current_state
+                is used instead.
 
         Returns:
             True if all methods were executed successfully, False otherwise
 
         '''
-        self.logger.debug('Executing activity '+self.activity_id+' states list')
+        self.update_flag = False
         if self._states_methods_dict:
-            states_to_exec_name_list = states_to_exec_name_list \
-                if states_to_exec_name_list else self.__states_to_exec_name_list
-            self.logger.debug('The following states: will be executed: '\
-                +', '.join(states_to_exec_name_list))
-            # these [:] make the loop be done over a copy of the
-            # original list
-            for state in states_to_exec_name_list[:]:
-                self.__execution_state = state
-                if state in self._states_methods_dict:
-                    self.logger.debug('Executing state '+state)
-                    try:
-                        ret = self._states_methods_dict[state]['method']()
-                    except Exception as error:
-                        self.logger.error('Error '+str(error)+' while executing state '+state)
-                        return False
-                    else:
-                        if ret:
-                            self.present_state = state
-                            self.__states_to_exec_name_list.remove(self.present_state)
-                            self.save_state_to_db()
-                        else:
-                            return False
-                else:
-                    self.log.warning('The method corresponding to state '+state+' is not '\
-                        +' implemented. It must be done in the super class.')
+            self.logger.debug('The following state will be executed: '+self._current_state)
+            if self._current_state in self._states_methods_dict:
+                self.logger.debug('Executing state '+self._current_state)
+                try:
+                    ret = self._states_methods_dict[self._current_state]['method']()
+                except Exception as error:
+                    self.logger.error('Error '+str(error)+\
+                        ' while executing state '+self._current_state)
                     return False
+                else:
+                    if not ret:
+                        self.logger.error("Error while executing stage "\
+                                +self._current_state+" from "+" activity's id "\
+                                +self._activity_id+". Its thread will be finished.")
+                        return False
+            else:
+                self.logger.warning('The method corresponding to state '+self._current_state\
+                    +' is not implemented. It must be done in the super class.')
+                return False
+            self._save_state_to_db()
+            self._update_states()
             return True
         else:
             self.logger.error('Error! You must fill properly the states`s methods'\
                 +' dictionary self._states_methods_dict in the super class!')
             return False
 
-    @staticmethod
-    def get_present_sm_fields():
-        '''
-
-        Fetches user provided data in order to fill necessary fields
-        for the correct execution of the states methods of the current
-        activity
-
-        Returns:
-            dictionary containing activity related necessary fields
-            properly filled
-        '''
-        # MUST be overloaded in the super class
-        present_sm_fields_dict = {}
-        return present_sm_fields_dict
-
-    def __check_activity_in_db(self):
+    def _check_activity_in_db(self):
         '''
         Checks if there is an entry in table STATE_MACHINE in the database corresponding
         to this activity_id
@@ -167,88 +175,98 @@ class StateMachine(threading.Thread):
         con = sql.connect(self._sm_database_path)
         with con:
             cur = con.cursor()
-            cur.execute("SELECT * FROM STATE_MACHINE WHERE `activity_id` = " \
-                + self._activity_id)
+            cur.execute("SELECT * FROM STATE_MACHINE WHERE `activity_id` = '" \
+                + self._activity_id+"'")
         rows = cur.fetchall()
         return True if rows else False
 
-    def save_state_to_db(self):
+    def _save_state_to_db(self):
         '''
 
         Saves necessary fields of this activity into the database, in table STATE_MACHINE
 
         '''
-        entry_exist = self.__check_activity_in_db()
+        entry_exist = self._check_activity_in_db()
         con = sql.connect(self._sm_database_path)
-        self.logger.debug('Saving activity '+self.activity_id+' state to database')
+        self.logger.debug('Saving activity '+self._activity_id+' state to database')
         with con:
             cur = con.cursor()
             if not entry_exist:
                 sm_table_fields_list = [
-                    self.__sm_fields['activity_name'].decode(),  # activity_name
-                    unicode(self.present_state.decode('utf-8')),  # present_state
-                    str(self.is_finished).decode(),  # is_finished
+                    self._sm_fields['activity_name'].decode(),  # activity_name
+                    str(self._is_finished).decode(),  # is_finished
+                    unicode(self._previous_state.decode('utf-8'))\
+                        if self._previous_state else str(self._previous_state),  # previous_state
+                    unicode(self._current_state.decode('utf-8'))\
+                        if self._current_state else str(self._current_state),  # current_state
+                    unicode(self._next_state.decode('utf-8'))\
+                        if self._next_state else str(self._next_state), # next_state
                     str(self._activity_id),  # activity_id
-                    (self.__sm_fields['activity_creation_date']).strftime(
+                    (self._sm_fields['activity_creation_date']).strftime(
                         "%Y-%m-%d %H:%M:%S").decode(),  # creationDate
-                    self.__sm_fields['present_state_creation_date'].\
+                    self._sm_fields['current_state_creation_date'].\
                         strftime("%Y-%m-%d %H:%M:%S").decode(),
-                    str(self._external_id)  # _external_id
+                    str(self._external_id)  # external_id
                 ]
                 cur.execute("INSERT INTO STATE_MACHINE VALUES("\
-                    +', '.join(sm_table_fields_list)+")")
+                    +'"'+'", "'.join(sm_table_fields_list)+'"'+")")
             else:
                 cur.execute("UPDATE STATE_MACHINE SET "\
-                    +"activity_name = "+self.__sm_fields['activity_name'].decode()+","\
-                    +"present_state = "+unicode(self.present_state.decode('utf-8'))+","\
-                    +"is_finished = "+str(self.is_finished).decode()+","\
-                    +"activity_id = "+str(self._activity_id)+","\
-                    +"activity_creation_date = "+self.__sm_fields['activity_creation_date']+","\
-                    +"present_state_creation_date = "\
-                        +self.__sm_fields['present_state_creation_date']+","\
-                    +"external_id = "+str(self._external_id)+","\
-                    +"WHERE activity_id = " + self._activity_id)
+                    +"previous_state = '"+(unicode(self._previous_state.decode('utf-8'))\
+                        if self._previous_state else str(self._previous_state))+"',"\
+                    +"current_state = '"+(unicode(self._current_state.decode('utf-8'))\
+                        if self._current_state else str(self._current_state))+"',"\
+                    +"next_state = '"+(unicode(self._next_state.decode('utf-8'))\
+                        if self._next_state else str(self._next_state))+"',"\
+                    +"is_finished = '"+str(self._is_finished).decode()+"',"\
+                    +"current_state_creation_date = '"\
+                        +self._sm_fields['current_state_creation_date'].\
+                        strftime("%Y-%m-%d %H:%M:%S").decode()+"',"\
+                    +"external_id = '"+str(self._external_id)+"' "\
+                    +"WHERE activity_id = '" + self._activity_id+"'")
 
-    def __update_state_action(self):
+    def _initial_configs(self):
         '''
-
-        Updates the list of states that must de executed
+        Initializes the list of states to be executed and restore the
+        machine state from datebase if it was interrupted before
 
         '''
-        self.__sm_fields = self.get_present_sm_fields()
-        self.__update_states_to_execute()
+        self._all_states_list = self._states_methods_dict.keys()
+        if self._check_activity_in_db():
+            self._restore_state_from_db()
+        else:
+            self._current_state = self._all_states_list[0]
+            self._states_to_exec_list = [self._current_state]
+            if len(self._all_states_list) > 1:
+                ns_idx = self._all_states_list.index(self._current_state)+1
+                self._next_state = self._all_states_list[ns_idx]
 
     def run(self):
         '''
 
         Initiates the thread that effectivelly implements the state machine.
         A change of state must be sinalized by a flag (update, must be True)
-        The final state must be sinalized by a flag (is_finished, must be True)
+        The final state must be sinalized by a flag (_is_finished, must be True)
 
         '''
-        self.__restore_state_from_db()
-        if self.is_finished:
-            logging.warning('The activity with id ' + self._activity_id\
-                +' has been already finished.')
-            return
-        self.__sm_fields = self.get_present_sm_fields()
-        ret = self.__exec_states_list()
-        if not ret:
-            self.logger.error("Error while executing stage "+self.__execution_state+" from "\
-                    +" activity's id "+self._activity_id+". Its thread will be finished.")
-            return
-        while not self.is_finished:
+        def _execute_current_action(self):
+            if self._recovering and self.update_flag:
+                for _ in self._states_to_exec_list:
+                    ret = self._exec_state()
+                    if not ret:
+                        self._recovering = False
+                        return False
+                self._recovering = False
+            elif self.update_flag:
+                return self._exec_state()
+            return True
+
+        self._initial_configs()
+        while not self._is_finished:
             mlock = threading.RLock()
             with mlock:
-                if self.update_flag:
-                    self.__update_state_action()
-                    ret = self.__exec_states_list()
-                    if not ret:
-                        self.logger.error("Error while executing stage "\
-                            +self.__execution_state+" from activity's id "\
-                            +self._activity_id+". Its thread will be finished.")
-                        return
-                    self.update_flag = False
+                if not _execute_current_action(self):
+                    return
             sleep(self.sleep_interval)
         self.logger.info("Activity's id "+self._activity_id+" thread is finished.")
 
