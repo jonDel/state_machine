@@ -1,12 +1,13 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
-    name='state_machine',
+    name='state_machine_db',
     version='0.1',
     author='Jonatan Dellagostin',
     author_email='jdellagostin@gmail.com',
     url='https://github.com/jonDel/state_machine',
-    packages=['state_machine'],
+    #packages=['state_machine'],
+    packages=find_packages(),
     license='GPLv3',
     description='Provides the implementation of a configurable state machine',
     long_description=open('README.rst').read(),

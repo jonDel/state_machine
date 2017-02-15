@@ -1,5 +1,5 @@
 import unittest
-from state_machine import StateMachine
+from state_machine_db import StateMachine
 import sqlite3 as sql
 import os
 from datetime import datetime

@@ -50,7 +50,7 @@ clean:
 
 .PHONY: rst
 rst:
-	sphinx-apidoc -f -o source ../state_machine
+	sphinx-apidoc -f -o source ../state_machine_db
 
 .PHONY: html
 html:
@@ -95,9 +95,9 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/state_machine.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/state_machine_db.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/state_machine.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/state_machine_db.qhc"
 
 .PHONY: applehelp
 applehelp:
@@ -114,8 +114,8 @@ devhelp:
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/state_machine"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/state_machine"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/state_machine_db"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/state_machine_db"
 	@echo "# devhelp"
 
 .PHONY: epub

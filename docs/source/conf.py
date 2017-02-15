@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# state_machine documentation build configuration file, created by
+# state_machine_db documentation build configuration file, created by
 # sphinx-quickstart on Fri Nov  4 16:58:46 2017.
 #
 # This file is execfile()d with the current directory set to its
@@ -56,7 +56,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'state_machine'
+project = u'state_machine_db'
 copyright = u'2017, Jonatan Dellagostin'
 author = u'Jonatan Dellagostin'
 
@@ -144,7 +144,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
 #
-# html_title = u'state_machine v0.1'
+# html_title = u'state_machine_db v0.1'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #
@@ -244,7 +244,7 @@ html_static_path = ['_static']
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'state_machinedoc'
+htmlhelp_basename = 'state_machine_dbdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -270,7 +270,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'state_machine.tex', u'state_machine Documentation',
+    (master_doc, 'state_machine_db.tex', u'state_machine_db Documentation',
      u'Jonatan Dellagostin', 'manual'),
 ]
 
@@ -312,7 +312,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'statemachine', u'state_machine Documentation',
+    (master_doc, 'statemachine', u'state_machine_db Documentation',
      [author], 1)
 ]
 
@@ -327,8 +327,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'state_machine', u'state_machine Documentation',
-     author, 'state_machine', 'One line description of project.',
+    (master_doc, 'state_machine_db', u'state_machine_db Documentation',
+     author, 'state_machine_db', 'One line description of project.',
      'Miscellaneous'),
 ]
 
