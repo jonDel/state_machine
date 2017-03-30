@@ -79,7 +79,7 @@ class StateMachine(threading.Thread):
                 self._next_state = self._all_states_list[ns_idx]
             else:
                 self._next_state = None
-            states_list = self._states_methods_dict.keys()
+            states_list = list(self._states_methods_dict.keys())
             curr_st_idx = states_list.index(self._current_state)
             # if actual__current_state exists, it means that there was an
             # external update in the current state machine state, i.e,
@@ -118,6 +118,13 @@ class StateMachine(threading.Thread):
                 self._next_state = self._all_states_list[ns_idx]
             else:
                 self._next_state = None
+
+    def __convert_str(self, str_to_cv):
+        try:
+            conv_str = unicode(str_to_cv.decode('utf-8'))
+        except (AttributeError, NameError):
+            conv_str = str(str_to_cv)
+        return conv_str
 
     def _exec_state(self, state_to_exec_name=None):
         '''
@@ -193,35 +200,35 @@ class StateMachine(threading.Thread):
             cur = con.cursor()
             if not entry_exist:
                 sm_table_fields_list = [
-                    self._sm_fields['activity_name'].decode(),  # activity_name
-                    str(self._is_finished).decode(),  # is_finished
-                    unicode(self._previous_state.decode('utf-8'))\
+                    self.__convert_str(self._sm_fields['activity_name']),  # activity_name
+                    self.__convert_str(self._is_finished),  # is_finisheda
+                    self.__convert_str(self._previous_state)\
                         if self._previous_state else str(self._previous_state),  # previous_state
-                    unicode(self._current_state.decode('utf-8'))\
+                    self.__convert_str(self._current_state)\
                         if self._current_state else str(self._current_state),  # current_state
-                    unicode(self._next_state.decode('utf-8'))\
+                    self.__convert_str(self._next_state)\
                         if self._next_state else str(self._next_state), # next_state
                     str(self._activity_id),  # activity_id
-                    (self._sm_fields['activity_creation_date']).strftime(
-                        "%Y-%m-%d %H:%M:%S").decode(),  # creationDate
-                    self._sm_fields['current_state_creation_date'].\
-                        strftime("%Y-%m-%d %H:%M:%S").decode(),
+                    self.__convert_str((self._sm_fields['activity_creation_date']).strftime(
+                        "%Y-%m-%d %H:%M:%S")),  # creationDate
+                    self.__convert_str(self._sm_fields['current_state_creation_date'].\
+                        strftime("%Y-%m-%d %H:%M:%S")),
                     str(self._external_id)  # external_id
                 ]
                 cur.execute("INSERT INTO STATE_MACHINE VALUES("\
                     +'"'+'", "'.join(sm_table_fields_list)+'"'+")")
             else:
                 cur.execute("UPDATE STATE_MACHINE SET "\
-                    +"previous_state = '"+(unicode(self._previous_state.decode('utf-8'))\
+                    +"previous_state = '"+(self.__convert_str(self._previous_state)\
                         if self._previous_state else str(self._previous_state))+"',"\
-                    +"current_state = '"+(unicode(self._current_state.decode('utf-8'))\
+                    +"current_state = '"+(self.__convert_str(self._current_state)\
                         if self._current_state else str(self._current_state))+"',"\
-                    +"next_state = '"+(unicode(self._next_state.decode('utf-8'))\
+                    +"next_state = '"+(self.__convert_str(self._next_state)\
                         if self._next_state else str(self._next_state))+"',"\
-                    +"is_finished = '"+str(self._is_finished).decode()+"',"\
+                    +"is_finished = '"+self.__convert_str(str(self._is_finished))+"',"\
                     +"current_state_creation_date = '"\
-                        +self._sm_fields['current_state_creation_date'].\
-                        strftime("%Y-%m-%d %H:%M:%S").decode()+"',"\
+                        +self.__convert_str(self._sm_fields['current_state_creation_date'].\
+                        strftime("%Y-%m-%d %H:%M:%S"))+"',"\
                     +"external_id = '"+str(self._external_id)+"' "\
                     +"WHERE activity_id = '" + self._activity_id+"'")
 
@@ -231,7 +238,7 @@ class StateMachine(threading.Thread):
         machine state from datebase if it was interrupted before
 
         '''
-        self._all_states_list = self._states_methods_dict.keys()
+        self._all_states_list = list(self._states_methods_dict.keys())
         if self._check_activity_in_db():
             self._restore_state_from_db()
         else:

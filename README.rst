@@ -47,7 +47,7 @@ To install state_machine, simply run:
 
   $ pip install state_machine_db
 
-state_machine_db is compatible with Python 2.6+
+state_machine_db is compatible with Python 2.6+ and python 3
 
 Documentation
 -------------
