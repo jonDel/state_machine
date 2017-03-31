@@ -24,6 +24,10 @@ class MessAroundSM(StateMachine):
         self._sm_fields = {'activity_creation_date':datetime.now(),
                            'activity_name': 'mess_around_a_bit'}
         self.activity_creation_date = datetime.now()
+        self._updated_states_list = ['read_file']
+
+    def get_updated_states(self):
+        return self._updated_states_list
 
 
     def read_file(self):
@@ -69,22 +73,24 @@ class StateMachineTest(unittest.TestCase):
         self.assertEqual(self.sm._current_state, 'read_file')
 
     def test03_apply_regex(self):
+        self.sm._updated_states_list.append('apply_regex')
         self.sm.update_flag= True
         sleep(0.15)
         self.assertEqual(self.sm._current_state, 'apply_regex')
 
     def test04_save_file(self):
+        self.sm._updated_states_list.append('save_file')
         self.sm.update_flag= True
         sleep(0.15)
         self.assertEqual(self.sm._current_state, 'save_file')
 
     def test05_exit(self):
+        self.sm._updated_states_list.append('exit')
         self.sm.update_flag= True
         sleep(0.15)
         self.assertEqual(self.sm._current_state, 'exit')
-        self.sm.update_flag= True
+        self.sm.is_finished = True
         sleep(0.15)
-        self.assertTrue(self.sm._is_finished)
 
     def test06_check_if_thread_finished(self):
         self.assertFalse(self.sm.check_if_thread_alive(self.sm.name))
