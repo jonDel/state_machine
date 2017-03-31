@@ -10,7 +10,6 @@ import threading
 from time import sleep
 import logging
 
-
 class StateMachine(threading.Thread):
     '''
 
@@ -33,9 +32,8 @@ class StateMachine(threading.Thread):
         self._external_id = None
         self._last_executed_state = None
         # MUST implement in the child class
-        self._states_methods_dict = {}
-        self._states_to_exec_name_list = []
-        self._sm_fields = {}
+        self._states_methods_dict = NotImplemented
+        self._sm_fields = NotImplemented
         # Thread class parameters and initialization:
         threading.Thread.__init__(self)
         # If daemon = True, the thread will die with its parent
@@ -46,6 +44,7 @@ class StateMachine(threading.Thread):
         self.name = 'state_machine_' + self._activity_id
         # flag that sinalizes an update in the state machine
         self.update_flag = False
+
 
     def _restore_state_from_db(self):
         '''
@@ -243,6 +242,11 @@ class StateMachine(threading.Thread):
         The final state must be sinalized by a flag (is_finished, must be True)
 
         '''
+        if self._sm_fields == NotImplemented:
+            raise NotImplementedError('Must implement _sm_fields dictionary in the child class!')
+        if self._states_methods_dict == NotImplemented:
+            raise NotImplementedError('Must implement _states_methods_dict dictionary'\
+                                      +'in the child class!')
         if not self._synchronize_states():
             return
         while not self.is_finished:

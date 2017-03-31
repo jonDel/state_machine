@@ -20,7 +20,6 @@ class MessAroundSM(StateMachine):
         self._states_methods_dict['apply_regex']={'method':self.apply_regex}
         self._states_methods_dict['save_file']={'method':self.save_file}
         self._states_methods_dict['exit']={'method':self.exit}
-        self.__states_to_exec_name_list = []
         self._sm_fields = {'activity_creation_date':datetime.now(),
                            'activity_name': 'mess_around_a_bit'}
         self.activity_creation_date = datetime.now()
