@@ -20,7 +20,7 @@ class MessAroundSM(StateMachine):
         self._states_methods_dict['apply_regex']={'method':self.apply_regex}
         self._states_methods_dict['save_file']={'method':self.save_file}
         self._states_methods_dict['exit']={'method':self.exit}
-        self._sm_fields = {'activity_creation_date':datetime.now(),
+        self.sm_fields = {'activity_creation_date':datetime.now(),
                            'activity_name': 'mess_around_a_bit'}
         self.activity_creation_date = datetime.now()
         self._updated_states_list = ['read_file']
@@ -30,22 +30,22 @@ class MessAroundSM(StateMachine):
 
 
     def read_file(self):
-        self._sm_fields['current_state_creation_date'] = datetime.now()
+        self.sm_fields['current_state_creation_date'] = datetime.now()
         sleep(0.002)
         return True
 
     def apply_regex(self):
-        self._sm_fields['current_state_creation_date'] = datetime.now()
+        self.sm_fields['current_state_creation_date'] = datetime.now()
         sleep(0.002)
         return True
 
     def save_file(self):
-        self._sm_fields['current_state_creation_date'] = datetime.now()
+        self.sm_fields['current_state_creation_date'] = datetime.now()
         sleep(0.002)
         return True
 
     def exit(self):
-        self._sm_fields['current_state_creation_date'] = datetime.now()
+        self.sm_fields['current_state_creation_date'] = datetime.now()
         sleep(0.002)
         return True
 

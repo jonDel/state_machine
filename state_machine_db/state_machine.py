@@ -33,7 +33,7 @@ class StateMachine(threading.Thread):
         self._last_executed_state = None
         # MUST implement in the child class
         self._states_methods_dict = NotImplemented
-        self._sm_fields = NotImplemented
+        self.sm_fields = NotImplemented
         # Thread class parameters and initialization:
         threading.Thread.__init__(self)
         # If daemon = True, the thread will die with its parent
@@ -167,13 +167,13 @@ class StateMachine(threading.Thread):
             cur = con.cursor()
             if not entry_exist:
                 sm_table_fields_list = [
-                    self.__convert_str(self._sm_fields['activity_name']),  # activity_name
+                    self.__convert_str(self.sm_fields['activity_name']),  # activity_name
                     self.__convert_str(self.is_finished),  # is_finished
                     self.__convert_str(current_state),  # current_state
                     self.__convert_str(self._activity_id),  # activity_id
-                    self.__convert_str((self._sm_fields['activity_creation_date']).strftime(
+                    self.__convert_str((self.sm_fields['activity_creation_date']).strftime(
                         "%Y-%m-%d %H:%M:%S")),  # creationDate
-                    self.__convert_str(self._sm_fields['current_state_creation_date'].\
+                    self.__convert_str(self.sm_fields['current_state_creation_date'].\
                         strftime("%Y-%m-%d %H:%M:%S")),
                     self.__convert_str(self._external_id)  # external_id
                 ]
@@ -184,7 +184,7 @@ class StateMachine(threading.Thread):
                     +"current_state = '"+self.__convert_str(current_state)+"',"\
                     +"is_finished = '"+self.__convert_str(self.is_finished)+"',"\
                     +"current_state_creation_date = '"\
-                        +self.__convert_str(self._sm_fields['current_state_creation_date'].\
+                        +self.__convert_str(self.sm_fields['current_state_creation_date'].\
                         strftime("%Y-%m-%d %H:%M:%S"))+"',"\
                     +"external_id = '"+self.__convert_str(self._external_id)+"' "\
                     +"WHERE activity_id = '" + self.__convert_str(self._activity_id)+"'")
@@ -242,8 +242,8 @@ class StateMachine(threading.Thread):
         The final state must be sinalized by a flag (is_finished, must be True)
 
         '''
-        if self._sm_fields == NotImplemented:
-            raise NotImplementedError('Must implement _sm_fields dictionary in the child class!')
+        if self.sm_fields == NotImplemented:
+            raise NotImplementedError('Must implement sm_fields dictionary in the child class!')
         if self._states_methods_dict == NotImplemented:
             raise NotImplementedError('Must implement _states_methods_dict dictionary'\
                                       +'in the child class!')
