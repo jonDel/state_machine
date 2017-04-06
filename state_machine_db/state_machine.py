@@ -23,11 +23,11 @@ class StateMachine(threading.Thread):
         '''
     def __init__(self, sm_database_path, activity_id):
         self.logger = logging.getLogger(__name__)
-        self._activity_id = activity_id
+        self.activity_id = activity_id
         self._sm_database_path = sm_database_path
         self.is_finished = False
         self.current_states_list = []
-        self._current_state = None
+        self.current_state = None
         self._recovering = False
         self._external_id = None
         self._last_executed_state = None
@@ -41,7 +41,7 @@ class StateMachine(threading.Thread):
         # Time between each thread flags checking
         self.sleep_interval = 1
         # Naming the thread
-        self.name = 'state_machine_' + self._activity_id
+        self.name = 'state_machine_' + self.activity_id
         # flag that sinalizes an update in the state machine
         self.update_flag = False
 
@@ -58,7 +58,7 @@ class StateMachine(threading.Thread):
         with con:
             cur = con.cursor()
             execute = '''SELECT * FROM STATE_MACHINE WHERE `activity_id` = "'''\
-                +str(self._activity_id)+'''"'''
+                +str(self.activity_id)+'''"'''
             cur.execute(execute)
         rows = cur.fetchall()
         if rows:
@@ -68,7 +68,7 @@ class StateMachine(threading.Thread):
                 self._external_id = rows[0]["external_id"]
                 current_state = rows[0]["current_state"].encode('utf-8')
             else:
-                logging.warning('The activity with id ' + self._activity_id\
+                logging.warning('The activity with id ' + self.activity_id\
                     +' has been already finished.')
         return current_state
 
@@ -118,12 +118,13 @@ class StateMachine(threading.Thread):
                 except Exception as error:
                     self.logger.error('Error '+str(error)+\
                         ' while executing state '+state_to_exec)
+                    raise
                     return False
                 else:
                     if not ret:
                         self.logger.error("Error while executing stage "\
                                 +state_to_exec+" from "+" activity's id "\
-                                +self._activity_id+". Its thread will be finished.")
+                                +self.activity_id+". Its thread will be finished.")
                         return False
             else:
                 self.logger.warning('The method corresponding to state '+state_to_exec\
@@ -149,7 +150,7 @@ class StateMachine(threading.Thread):
         with con:
             cur = con.cursor()
             cur.execute("SELECT * FROM STATE_MACHINE WHERE `activity_id` = '" \
-                + self._activity_id+"'")
+                + self.activity_id+"'")
         rows = cur.fetchall()
         return True if rows else False
 
@@ -161,8 +162,8 @@ class StateMachine(threading.Thread):
         '''
         entry_exist = self.__check_activity_in_db()
         con = sql.connect(self._sm_database_path)
-        self.logger.debug('Saving activity '+self._activity_id+' state to database')
-        self._current_state = current_state
+        self.logger.debug('Saving activity '+self.activity_id+' state to database')
+        self.current_state = current_state
         with con:
             cur = con.cursor()
             if not entry_exist:
@@ -170,7 +171,7 @@ class StateMachine(threading.Thread):
                     self.__convert_str(self.sm_fields['activity_name']),  # activity_name
                     self.__convert_str(self.is_finished),  # is_finished
                     self.__convert_str(current_state),  # current_state
-                    self.__convert_str(self._activity_id),  # activity_id
+                    self.__convert_str(self.activity_id),  # activity_id
                     self.__convert_str((self.sm_fields['activity_creation_date']).strftime(
                         "%Y-%m-%d %H:%M:%S")),  # creationDate
                     self.__convert_str(self.sm_fields['current_state_creation_date'].\
@@ -187,7 +188,7 @@ class StateMachine(threading.Thread):
                         +self.__convert_str(self.sm_fields['current_state_creation_date'].\
                         strftime("%Y-%m-%d %H:%M:%S"))+"',"\
                     +"external_id = '"+self.__convert_str(self._external_id)+"' "\
-                    +"WHERE activity_id = '" + self.__convert_str(self._activity_id)+"'")
+                    +"WHERE activity_id = '" + self.__convert_str(self.activity_id)+"'")
 
     def _synchronize_states(self):
         '''
@@ -196,7 +197,7 @@ class StateMachine(threading.Thread):
 
         '''
 
-        self.logger.info("Synchronizing activity's id "+self._activity_id+" ...")
+        self.logger.info("Synchronizing activity's id "+self.activity_id+" ...")
         states_list = self.get_updated_states()
         restored_current_state = self._restore_state_from_db()
         self.update_flag = False
@@ -232,7 +233,7 @@ class StateMachine(threading.Thread):
                         return False
                     self._last_executed_state = state
         else:
-            self.logger.info("Activity's id "+self._activity_id+" thread is finished.")
+            self.logger.info("Activity's id "+self.activity_id+" thread is finished.")
         return True
 
     def run(self):
@@ -256,7 +257,7 @@ class StateMachine(threading.Thread):
                     if not self._execute_current_actions():
                         return
             sleep(self.sleep_interval)
-        self.logger.info("Activity's id "+self._activity_id+" thread is finished.")
+        self.logger.info("Activity's id "+self.activity_id+" thread is finished.")
 
     @staticmethod
     def check_if_thread_alive(activity_id):
