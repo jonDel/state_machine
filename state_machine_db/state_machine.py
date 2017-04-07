@@ -118,7 +118,6 @@ class StateMachine(threading.Thread):
                 except Exception as error:
                     self.logger.error('Error '+str(error)+\
                         ' while executing state '+state_to_exec)
-                    raise
                     return False
                 else:
                     if not ret:
