@@ -22,7 +22,7 @@ class StateMachine(threading.Thread):
 
         '''
     def __init__(self, sm_database_path, activity_id):
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(activity_id)
         self.activity_id = activity_id
         self._sm_database_path = sm_database_path
         self.is_finished = False
